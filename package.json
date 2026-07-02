@@ -2,7 +2,7 @@
   "name": "water",
   "displayName": "Water",
   "description": "Live water/energy footprint of your AI coding usage, in the status bar. 100% local, no network, no telemetry.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "royalpinto007",
   "license": "MIT",
   "homepage": "https://water.signalizeai.org",
@@ -70,6 +70,11 @@
           "type": "boolean",
           "default": true,
           "description": "Also show the compact estimate in the status bar. Turn off if you only want the side-panel banner."
+        },
+        "water.notifyOnMessage": {
+          "type": "boolean",
+          "default": true,
+          "description": "Pop a small notification right after each message completes, showing that message's water cost. Turn off if it feels noisy."
         }
       }
     }

@@ -20,8 +20,13 @@ function cfg() {
     tokensPerPrompt: c.get<number>("tokensPerPrompt", 500),
     refreshSeconds: Math.max(2, c.get<number>("refreshSeconds", 5)),
     showStatusBar: c.get<boolean>("showStatusBar", true),
+    notifyOnMessage: c.get<boolean>("notifyOnMessage", true),
   };
 }
+
+// Track the newest session so we can toast the moment a new message lands.
+let notifyFile = "";
+let notifyMsgs = -1;
 
 // Deepen the blue as today's high-end water estimate climbs (log scale to 519 mL).
 function rampColor(highMl: number): string {
@@ -58,7 +63,9 @@ function refresh() {
 
   // Live banner: current session + last-message delta.
   const actualFactor = actual > 0 && res.today.total > 0 ? actual / res.today.total : 1;
-  if (banner) banner.update(currentSession(), tokensPerPrompt, actualFactor);
+  const session = currentSession();
+  if (banner) banner.update(session, tokensPerPrompt, actualFactor);
+  maybeNotify(session, tokensPerPrompt, actualFactor);
 
   if (showStatusBar) {
     statusItem.text = `$(beaker) ${fmtWater(fp.waterMl.low)}-${fmtWater(fp.waterMl.high)}`;
@@ -76,6 +83,31 @@ function refresh() {
   }
 
   if (panel) panel.webview.html = panelHtml(res, fp, actual, lastCard);
+}
+
+// Pop a transient toast the moment a new message completes in the active session.
+function maybeNotify(
+  session: ReturnType<typeof currentSession>,
+  tokensPerPrompt: number,
+  actualFactor: number,
+) {
+  if (!cfg().notifyOnMessage || !session) return;
+  // Baseline (first sight, or session switched): set state, do not toast.
+  if (session.file !== notifyFile) {
+    notifyFile = session.file;
+    notifyMsgs = session.messages;
+    return;
+  }
+  if (notifyMsgs >= 0 && session.messages > notifyMsgs && session.lastDelta > 0) {
+    const fp = footprintFromModels(
+      { [session.model]: session.lastDelta * actualFactor },
+      tokensPerPrompt,
+    );
+    vscode.window.showInformationMessage(
+      `💧 That message used about ${fmtWater(fp.waterMl.low)} to ${fmtWater(fp.waterMl.high)} of water.`,
+    );
+  }
+  notifyMsgs = session.messages;
 }
 
 function openPanel(context: vscode.ExtensionContext) {

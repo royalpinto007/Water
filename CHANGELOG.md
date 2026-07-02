@@ -1,6 +1,9 @@
 # Changelog
 
 ## 0.2.0
+## 0.3.0
+- After-message toast: a small notification pops the moment a message completes, showing that message's water cost. Toggle with `water.notifyOnMessage`.
+
 - Added a live "Session footprint" banner view (Water icon in the activity bar; drag it to the right-hand secondary side bar to sit next to Claude Code / Codex).
 - Banner shows the current session's water range plus the increment from the last message you sent, updating live.
 - New setting `water.showStatusBar` to hide the status-bar item and use only the banner.
