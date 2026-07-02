@@ -1,0 +1,68 @@
+{
+  "name": "water",
+  "displayName": "Water",
+  "description": "Live water/energy footprint of your AI coding usage, in the status bar. 100% local, no network, no telemetry.",
+  "version": "0.1.0",
+  "publisher": "royalpinto007",
+  "license": "MIT",
+  "homepage": "https://water.signalizeai.org",
+  "repository": { "type": "git", "url": "https://github.com/royalpinto007/Water" },
+  "bugs": { "url": "https://water.signalizeai.org" },
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other", "Visualization"],
+  "keywords": ["ai", "water", "energy", "footprint", "claude", "codex", "sustainability"],
+  "icon": "media/icon.png",
+  "galleryBanner": { "color": "#0b1c33", "theme": "dark" },
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "water.showPanel",
+        "title": "Water: Show footprint panel"
+      },
+      {
+        "command": "water.refresh",
+        "title": "Water: Refresh now"
+      },
+      {
+        "command": "water.copyCard",
+        "title": "Water: Copy shareable card"
+      }
+    ],
+    "configuration": {
+      "title": "Water",
+      "properties": {
+        "water.actualTokens": {
+          "type": "number",
+          "default": 0,
+          "markdownDescription": "Your **actual** total tokens from Claude Code's statusline (or any accurate source). The raw JSONL logs undercount by 10-100x, so paste the real number here to show the honest 'actual' figure alongside the 'logged' sum. 0 = unknown."
+        },
+        "water.tokensPerPrompt": {
+          "type": "number",
+          "default": 500,
+          "description": "Assumed tokens per prompt-equivalent, used to convert tokens into the published per-prompt water/energy figures. Labeled assumption, edit if you disagree."
+        },
+        "water.refreshSeconds": {
+          "type": "number",
+          "default": 5,
+          "description": "How often (seconds) to re-scan the local log directories."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
+    "watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap --watch",
+    "typecheck": "tsc --noEmit",
+    "package": "vsce package --no-dependencies -o water.vsix"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2"
+  }
+}

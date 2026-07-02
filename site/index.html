@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Water: the water footprint of your AI coding, live in VS Code</title>
+<meta name="description" content="A free VS Code extension that shows the estimated water and energy footprint of your AI coding usage, live in the status bar. 100% local, no network, no telemetry." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3 C16 3 6 15 6 21 a10 10 0 0 0 20 0 C26 15 16 3 16 3 Z' fill='%233b82f6'/%3E%3C/svg%3E" />
+<style>
+:root{
+  --bg:#08131f;--panel:rgba(255,255,255,.04);--line:rgba(255,255,255,.10);
+  --text:#e8eef7;--muted:#9fb0c3;--blue:#3b82f6;--deep:#1e3a8a;--vscode:#0098ff
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:-20%;z-index:-2;
+  background:radial-gradient(45% 45% at 20% 10%,rgba(59,130,246,.22),transparent 60%),
+             radial-gradient(40% 40% at 85% 20%,rgba(30,58,138,.28),transparent 60%),
+             radial-gradient(50% 45% at 55% 100%,rgba(59,130,246,.14),transparent 60%);
+  filter:blur(6px)}
+.wrap{max-width:960px;margin:0 auto;padding:28px 22px}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.3px}
+.drop{width:26px;height:26px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+.nav a{color:var(--muted);margin-left:18px;font-size:14px}
+.hero{text-align:center;padding:64px 0 26px}
+.hero h1{font-size:clamp(32px,6vw,56px);line-height:1.05;letter-spacing:-1.5px;margin:0 auto 18px;max-width:16ch;font-weight:800}
+.g{background:linear-gradient(100deg,#dbeafe 0%,var(--blue) 55%,var(--deep) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{font-size:clamp(16px,2.2vw,20px);color:var(--muted);max-width:640px;margin:0 auto 28px}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(90deg,var(--blue),var(--deep));
+  color:#fff;border:0;border-radius:12px;padding:13px 20px;font-weight:700;font-size:15px;cursor:pointer;
+  box-shadow:0 10px 30px -12px rgba(59,130,246,.9);transition:transform .15s,box-shadow .25s}
+.btn:hover{transform:translateY(-2px);text-decoration:none;box-shadow:0 16px 36px -12px rgba(59,130,246,1)}
+.btn.ghost{background:rgba(255,255,255,.05);border:1px solid var(--line);box-shadow:none}
+.vscode-logo{width:20px;height:20px}
+.pill{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);
+  border:1px solid var(--line);border-radius:999px;padding:5px 13px;background:rgba(255,255,255,.03);margin-bottom:20px}
+.dot{width:7px;height:7px;border-radius:50%;background:#34d399}
+.statusbar{display:inline-flex;align-items:center;gap:8px;margin:26px auto 0;padding:6px 12px;border-radius:8px;
+  background:#12233a;border:1px solid var(--line);font-size:14px;font-variant-numeric:tabular-nums}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:20px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;backdrop-filter:blur(8px)}
+.card h3{margin:8px 0 6px;font-size:16px}
+.card p{margin:0;color:var(--muted);font-size:14px}
+h2{font-size:clamp(24px,4vw,34px);letter-spacing:-.6px;margin:56px 0 6px;text-align:center}
+.lead{color:var(--muted);text-align:center;max-width:620px;margin:0 auto 22px}
+.rangebar{position:relative;height:16px;border-radius:9px;margin:34px 0 10px;
+  background:linear-gradient(90deg,#60a5fa,#1e3a8a)}
+.tick{position:absolute;top:20px;font-size:11px;color:var(--muted);transform:translateX(-50%)}
+.tick.r{transform:translateX(-50%)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.foot{color:var(--muted);font-size:13px;text-align:center;padding:44px 0 20px;border-top:1px solid var(--line);margin-top:56px}
+.badge{font-size:12px;color:var(--muted)}
+ul.clean{list-style:none;padding:0;margin:10px 0 0}
+ul.clean li{padding:7px 0;border-bottom:1px solid var(--line);color:var(--muted);font-size:14px}
+ul.clean li b{color:var(--text)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <svg class="drop" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3C16 3 6 15 6 21a10 10 0 0 0 20 0C26 15 16 3 16 3Z" fill="url(#dg)"/><defs><linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient></defs></svg>
+      Water
+    </div>
+    <nav class="nav">
+      <a href="#how">How it works</a>
+      <a href="#honest">The honest range</a>
+      <a href="#install">Install</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <span class="pill"><span class="dot"></span> Free &middot; 100% local &middot; no network, no telemetry</span>
+    <h1>See the <span class="g">water footprint</span> of your AI coding, live.</h1>
+    <p>Water is a VS Code extension that reads your Claude Code and Codex logs on disk and shows today's estimated water and energy use right in the status bar. Nothing leaves your machine.</p>
+    <div class="cta">
+      <a class="btn" id="install-btn" href="#install">
+        <svg class="vscode-logo" viewBox="0 0 24 24" aria-hidden="true" fill="#ffffff"><path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 18.06V5.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/></svg>
+        Get it for VS Code
+      </a>
+      <a class="btn ghost" href="https://github.com/royalpinto007/Water">View source</a>
+    </div>
+    <div class="statusbar" aria-label="status bar preview">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="#60a5fa"><path d="M12 2S5 10 5 15a7 7 0 0 0 14 0c0-5-7-13-7-13Z"/></svg>
+      <span class="mono">2.7 L&ndash;2.5 kL</span>
+    </div>
+  </section>
+
+  <section id="how">
+    <h2>What it does</h2>
+    <p class="lead">Everything runs in the extension host. No API key. No account. Works offline.</p>
+    <div class="grid">
+      <div class="card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg>
+        <h3>Reads your logs locally</h3>
+        <p>Parses <span class="mono">~/.claude/projects</span> and <span class="mono">~/.codex/sessions</span> directly, deduping messages and counting per model.</p>
+      </div>
+      <div class="card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>
+        <h3>Live in the status bar</h3>
+        <p>Today's water estimate updates as you work and deepens from light to deep blue as it climbs. Click for the full panel.</p>
+      </div>
+      <div class="card">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M4 17l6-6 4 4 6-8"/></svg>
+        <h3>Per-model breakdown</h3>
+        <p>See which models drove your footprint. Heavyweight reasoning models get a 10x weight, because model choice is the biggest lever.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="honest">
+    <h2>An honest range, never one fake number</h2>
+    <p class="lead">Published estimates for the water cost of one AI prompt disagree by more than 1000x. So Water shows a range, with every coefficient labeled and sourced.</p>
+    <div class="card">
+      <div class="rangebar">
+        <div class="tick" style="left:0%">0.3 mL<br>vendor-optimistic</div>
+        <div class="tick r" style="left:100%">519 mL<br>worst-case ceiling</div>
+      </div>
+      <ul class="clean" style="margin-top:44px">
+        <li><b>Optimistic</b> &mdash; Google ~0.26 mL/prompt, Sam Altman ~0.32 mL (~0.34 Wh) per prompt.</li>
+        <li><b>Pessimistic</b> &mdash; UC Riverside ~10&ndash;25 mL/prompt; 519 mL worst-case ceiling.</li>
+        <li><b>Reasoning multiplier</b> &mdash; 10x for heavyweight models (Opus, o1/o3, GPT-5, etc.).</li>
+      </ul>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin-top:0">Logged vs actual &mdash; a feature, not a bug</h3>
+      <p>Raw JSONL logs undercount real token usage by 10&ndash;100x: they use streaming placeholders and omit hidden thinking tokens. Water always shows the logged sum, and when you paste your true total from the statusline it shows the corrected figure and the undercount factor, instead of hiding the discrepancy.</p>
+    </div>
+  </section>
+
+  <section id="install">
+    <h2>Install</h2>
+    <p class="lead">Free on the VS Code Marketplace. Or build the VSIX from source.</p>
+    <div class="cta">
+      <a class="btn" href="https://marketplace.visualstudio.com/items?itemName=royalpinto007.water">
+        <svg class="vscode-logo" viewBox="0 0 24 24" aria-hidden="true" fill="#ffffff"><path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 18.06V5.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/></svg>
+        VS Code Marketplace
+      </a>
+      <a class="btn ghost" href="https://github.com/royalpinto007/Water">GitHub &amp; VSIX</a>
+    </div>
+    <p class="lead" style="margin-top:22px">Or from the command line, once published:</p>
+    <div class="card mono" style="max-width:520px;margin:0 auto;text-align:center;font-size:14px">code --install-extension royalpinto007.water</div>
+  </section>
+
+  <div class="foot">
+    Water &middot; measured locally, shared only if you choose to.
+    <br>
+    <span class="badge">Built by <a href="https://github.com/royalpinto007">royalpinto007</a> &middot; VS Code and the VS Code logo are trademarks of Microsoft.</span>
+  </div>
+
+</div>
+</body>
+</html>
