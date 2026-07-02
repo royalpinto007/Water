@@ -1,0 +1,8 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "water-site",
+  "compatibility_date": "2025-03-25",
+  // Static one-page landing served from ./site.
+  "assets": { "directory": "./site" },
+  "routes": [{ "pattern": "water.signalizeai.org", "custom_domain": true }]
+}

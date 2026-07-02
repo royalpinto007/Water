@@ -1,11 +1,13 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
-import { scan, logDirs, ScanResult } from "./parse";
+import { scan, logDirs, currentSession, ScanResult } from "./parse";
 import { footprintFromModels, Footprint, fmtWater } from "./water";
 import { panelHtml } from "./panel";
 import { shareCard } from "./card";
+import { BannerView } from "./bannerView";
 
 let statusItem: vscode.StatusBarItem;
+let banner: BannerView;
 let panel: vscode.WebviewPanel | undefined;
 let timer: NodeJS.Timeout | undefined;
 let watchers: fs.FSWatcher[] = [];
@@ -17,6 +19,7 @@ function cfg() {
     actualTokens: Math.max(0, c.get<number>("actualTokens", 0)),
     tokensPerPrompt: c.get<number>("tokensPerPrompt", 500),
     refreshSeconds: Math.max(2, c.get<number>("refreshSeconds", 5)),
+    showStatusBar: c.get<boolean>("showStatusBar", true),
   };
 }
 
@@ -50,18 +53,27 @@ function compute(): { res: ScanResult; fp: Footprint; actual: number } {
 
 function refresh() {
   const { res, fp, actual } = compute();
+  const { tokensPerPrompt, showStatusBar } = cfg();
   lastCard = shareCard(res, fp, actual);
 
-  statusItem.text = `$(beaker) ${fmtWater(fp.waterMl.low)}-${fmtWater(fp.waterMl.high)}`;
-  statusItem.color = rampColor(fp.waterMl.high);
-  const undercount =
-    actual > 0 && res.today.total > 0 ? ` (actual ~${Math.round(actual / res.today.total)}x logged)` : "";
-  statusItem.tooltip = new vscode.MarkdownString(
-    `**Water today**: ${fmtWater(fp.waterMl.low)} to ${fmtWater(fp.waterMl.high)}\n\n` +
-      `Logged tokens: ${res.today.total.toLocaleString()}${undercount}\n\n` +
-      `Click for the honest range, per-model breakdown, and a shareable card.`,
-  );
-  statusItem.show();
+  // Live banner: current session + last-message delta.
+  const actualFactor = actual > 0 && res.today.total > 0 ? actual / res.today.total : 1;
+  if (banner) banner.update(currentSession(), tokensPerPrompt, actualFactor);
+
+  if (showStatusBar) {
+    statusItem.text = `$(beaker) ${fmtWater(fp.waterMl.low)}-${fmtWater(fp.waterMl.high)}`;
+    statusItem.color = rampColor(fp.waterMl.high);
+    const undercount =
+      actual > 0 && res.today.total > 0 ? ` (actual ~${Math.round(actual / res.today.total)}x logged)` : "";
+    statusItem.tooltip = new vscode.MarkdownString(
+      `**Water today**: ${fmtWater(fp.waterMl.low)} to ${fmtWater(fp.waterMl.high)}\n\n` +
+        `Logged tokens: ${res.today.total.toLocaleString()}${undercount}\n\n` +
+        `Click for the honest range, per-model breakdown, and a shareable card.`,
+    );
+    statusItem.show();
+  } else {
+    statusItem.hide();
+  }
 
   if (panel) panel.webview.html = panelHtml(res, fp, actual, lastCard);
 }
@@ -118,6 +130,13 @@ export function activate(context: vscode.ExtensionContext) {
   statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   statusItem.command = "water.showPanel";
   context.subscriptions.push(statusItem);
+
+  banner = new BannerView();
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(BannerView.viewId, banner, {
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("water.showPanel", () => openPanel(context)),

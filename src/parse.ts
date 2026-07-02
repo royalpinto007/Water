@@ -207,6 +207,113 @@ export function scan(): ScanResult {
   return res;
 }
 
+// ---- Current session (newest log file), for the live banner ----
+export interface SessionInfo {
+  source: "claude" | "codex";
+  model: string;
+  total: number; // billable tokens this session
+  lastDelta: number; // billable tokens from the most recent message/turn
+  messages: number;
+  file: string;
+  mtimeMs: number;
+}
+
+function newestFile(dirs: string[]): string | null {
+  let best: string | null = null;
+  let bestM = -1;
+  for (const dir of dirs) {
+    for (const f of listFiles(dir, ".jsonl")) {
+      let m: number;
+      try {
+        m = fs.statSync(f).mtimeMs;
+      } catch {
+        continue;
+      }
+      if (m > bestM) {
+        bestM = m;
+        best = f;
+      }
+    }
+  }
+  return best;
+}
+
+// Parse just the newest session file for its running total + last-turn delta.
+export function currentSession(): SessionInfo | null {
+  const home = os.homedir();
+  const claudeDir = path.join(home, ".claude", "projects");
+  const codexDir = path.join(home, ".codex", "sessions");
+  const dirs = [claudeDir, codexDir].filter((d) => fs.existsSync(d));
+  const file = newestFile(dirs);
+  if (!file) return null;
+
+  const isCodex = file.includes(`${path.sep}.codex${path.sep}`);
+  const lines = readLines(file);
+  let total = 0;
+  let lastDelta = 0;
+  let messages = 0;
+  let model = isCodex ? "codex" : "unknown";
+  const seen = new Set<string>();
+
+  for (const line of lines) {
+    let d: any;
+    try {
+      d = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (isCodex) {
+      const p = d?.payload;
+      if (!p) continue;
+      if (p.model) model = String(p.model);
+      if (p.type !== "token_count") continue;
+      const last = p.info?.last_token_usage;
+      if (!last) continue;
+      const billable =
+        num(last.input_tokens) + num(last.output_tokens) + num(last.reasoning_output_tokens);
+      if (billable === 0) continue;
+      total += billable;
+      lastDelta = billable;
+      messages++;
+    } else {
+      const msg = d?.message;
+      const usage = msg?.usage;
+      if (!usage) continue;
+      if (String(msg.model || "") === "<synthetic>") continue;
+      const uuid = d.uuid || msg.id;
+      if (uuid) {
+        if (seen.has(uuid)) continue;
+        seen.add(uuid);
+      }
+      const billable =
+        num(usage.input_tokens) +
+        num(usage.output_tokens) +
+        num(usage.cache_creation_input_tokens);
+      if (billable === 0) continue;
+      if (msg.model) model = String(msg.model);
+      total += billable;
+      lastDelta = billable;
+      messages++;
+    }
+  }
+
+  let mtimeMs = 0;
+  try {
+    mtimeMs = fs.statSync(file).mtimeMs;
+  } catch {
+    /* ignore */
+  }
+  return {
+    source: isCodex ? "codex" : "claude",
+    model,
+    total,
+    lastDelta,
+    messages,
+    file,
+    mtimeMs,
+  };
+}
+
 // Directories to watch for live updates (whichever exist).
 export function logDirs(): string[] {
   const home = os.homedir();

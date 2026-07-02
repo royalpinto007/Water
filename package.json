@@ -2,7 +2,7 @@
   "name": "water",
   "displayName": "Water",
   "description": "Live water/energy footprint of your AI coding usage, in the status bar. 100% local, no network, no telemetry.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "royalpinto007",
   "license": "MIT",
   "homepage": "https://water.signalizeai.org",
@@ -16,6 +16,24 @@
   "activationEvents": ["onStartupFinished"],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "water",
+          "title": "Water",
+          "icon": "media/drop.svg"
+        }
+      ]
+    },
+    "views": {
+      "water": [
+        {
+          "id": "water.banner",
+          "name": "Session footprint",
+          "type": "webview"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "water.showPanel",
@@ -47,6 +65,11 @@
           "type": "number",
           "default": 5,
           "description": "How often (seconds) to re-scan the local log directories."
+        },
+        "water.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Also show the compact estimate in the status bar. Turn off if you only want the side-panel banner."
         }
       }
     }
