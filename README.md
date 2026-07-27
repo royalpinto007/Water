@@ -1,10 +1,16 @@
 # Water
 
-See the estimated **water and energy footprint of your AI coding usage**, live in the VS Code status bar.
+> Your AI coding assistant drinks water. Water shows you how much, live in your status bar.
 
-100% local. No API key, no network, no telemetry. Works offline.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![VS Code extension](https://img.shields.io/badge/VS%20Code-extension-007ACC.svg)
+![Runs 100% locally](https://img.shields.io/badge/network-none-brightgreen.svg)
+
+See the estimated **water and energy footprint of your AI coding usage**, live in the VS Code status bar. It reads your Claude Code and Codex logs on disk and shows the running cost of today's prompts, no account, no API key, no telemetry, fully offline.
 
 ![status bar](media/icon.png)
+
+<!-- Add a short screen-recording GIF of the status bar counting up here (media/demo.gif). It is the single biggest lever for stars. -->
 
 ## What it does
 
